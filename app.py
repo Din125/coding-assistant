@@ -2,12 +2,17 @@ import streamlit as st
 from openai import OpenAI
 import time
 import os
-import requests  
-import json  
+from dotenv import load_dotenv
+import requests  # Add this import for Tavily API requests
+import json  # Add this import for JSON parsing
+from exa_py import Exa  # Add this import at the top of the file
 
+load_dotenv()
+
+exa_client = Exa(st.secrets["EXA_API_KEY"])
 
 # Initialize OpenAI client
-openai_api_key = st.secrets["OPENAI_API_KEY"]
+openai_api_key = st.set_page_config["OPENAI_API_KEY"]
 if not openai_api_key:
     st.error("OpenAI API key is missing. Please check your .env file.")
     st.stop()
@@ -58,8 +63,34 @@ functions = [
             },
             "required": ["query"]
         }
+    },
+
+    {
+    "name": "search_exa",
+    "description": "Search the web using Exa AI",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string"},
+            "num_results": {"type": "integer", "default": 3}
+        },
+        "required": ["query"]
     }
+}
 ]
+
+
+def search_exa(query: str, num_results: int = 3):
+    response = exa_client.search_and_contents(
+        query,
+        num_results=num_results,
+        use_autoprompt=True,
+        text={"max_characters": 1000},
+        highlights=True
+    )
+    return [{"title": r.title, "url": r.url, "text": r.text, "highlights": r.highlights} for r in response.results]
+
+
 
 # Initialize session state variables
 if "thread" not in st.session_state:
@@ -107,7 +138,21 @@ def wait_on_run(run, thread):
                     pass
                 except Exception as e:
                     pass
-        
+            elif tool_call.function.name == "search_exa":
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                    query = arguments.get("query")
+                    num_results = arguments.get("num_results", 3)
+                    if query:
+                        result = search_exa(query, num_results)
+                        tool_outputs.append({
+                            "tool_call_id": tool_call.id,
+                            "output": json.dumps(result)
+                        })
+                except json.JSONDecodeError:
+                    pass
+                except Exception as e:
+                    pass
         if tool_outputs:
             run = client.beta.threads.runs.submit_tool_outputs(
                 thread_id=thread.id,
