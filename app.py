@@ -11,7 +11,7 @@ from exa_py import Exa  # Add this import at the top of the file
 exa_client = Exa(st.secrets["EXA_API_KEY"])
 
 # Initialize OpenAI client
-openai_api_key = st.set_page_config["OPENAI_API_KEY"]
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 if not openai_api_key:
     st.error("OpenAI API key is missing. Please check your .env file.")
     st.stop()
