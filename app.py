@@ -2,12 +2,11 @@ import streamlit as st
 from openai import OpenAI
 import time
 import os
-from dotenv import load_dotenv
 import requests  # Add this import for Tavily API requests
 import json  # Add this import for JSON parsing
 from exa_py import Exa  # Add this import at the top of the file
 
-load_dotenv()
+
 
 exa_client = Exa(st.secrets["EXA_API_KEY"])
 
